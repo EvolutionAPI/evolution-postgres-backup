@@ -1,0 +1,36 @@
+[Unit]
+Description=PostgreSQL Backup Service
+Documentation=https://github.com/your-org/evolution-postgres-backup
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=postgres-backup
+Group=postgres-backup
+WorkingDirectory=/opt/postgres-backup
+ExecStart=/opt/postgres-backup/postgres-backup
+Restart=always
+RestartSec=10
+
+# Environment
+Environment=PORT=8080
+Environment=LOG_LEVEL=info
+Environment=BACKUP_TEMP_DIR=/tmp/postgres-backups
+
+# Environment file (contains sensitive data)
+EnvironmentFile=/opt/postgres-backup/.env
+
+# Security
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/postgres-backup /tmp/postgres-backups /var/log
+
+# Limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target 

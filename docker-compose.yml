@@ -1,0 +1,122 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for the Application (not the target backup databases)
+  postgres-backup-db:
+    image: postgres:15
+    container_name: postgres-backup-db-v2
+    environment:
+      POSTGRES_DB: backup_service
+      POSTGRES_USER: backup_admin
+      POSTGRES_PASSWORD: backup_password_2024
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5433:5432"  # Different port to avoid conflicts with target PostgreSQL
+    volumes:
+      - postgres_backup_data:/var/lib/postgresql/data
+      - ./internal/database/schema_postgres.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    networks:
+      - postgres-backup-network-v2
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U backup_admin -d backup_service"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # API Service
+  postgres-backup-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: postgres-backup-api-v2
+    environment:
+      - PORT=8080
+      - API_KEY=a4f3a241-7763-4f3b-9101-0e26c5029f17
+      - DB_TYPE=postgres
+      - POSTGRES_HOST=postgres-backup-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=backup_service
+      - POSTGRES_USER=backup_admin
+      - POSTGRES_PASSWORD=backup_password_2024
+      - S3_ENDPOINT=https://hel1.your-objectstorage.com
+      - S3_REGION=hel1
+      - S3_BUCKET=backup-chatpolos
+      - S3_ACCESS_KEY_ID=M4WID7GXREH2EC5J30V8
+      - S3_SECRET_ACCESS_KEY=pLTF4vVMSnon1AL6NI9iTU86G0fTaVd7QyG6xfax
+      - S3_USE_SSL=true
+      - LOG_LEVEL=info
+      - BACKUP_TEMP_DIR=/tmp/postgres-backups
+    ports:
+      - "8080:8080"
+    networks:
+      - postgres-backup-network-v2
+    depends_on:
+      postgres-backup-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Worker Service  
+  postgres-backup-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: postgres-backup-worker-v2
+    environment:
+      - API_KEY=a4f3a241-7763-4f3b-9101-0e26c5029f17
+      - DB_TYPE=postgres
+      - POSTGRES_HOST=postgres-backup-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=backup_service
+      - POSTGRES_USER=backup_admin
+      - POSTGRES_PASSWORD=backup_password_2024
+      - S3_ENDPOINT=https://hel1.your-objectstorage.com
+      - S3_REGION=hel1
+      - S3_BUCKET=backup-chatpolos
+      - S3_ACCESS_KEY_ID=M4WID7GXREH2EC5J30V8
+      - S3_SECRET_ACCESS_KEY=pLTF4vVMSnon1AL6NI9iTU86G0fTaVd7QyG6xfax
+      - S3_USE_SSL=true
+      - LOG_LEVEL=info
+      - BACKUP_TEMP_DIR=/tmp/postgres-backups
+      - WORKER_COUNT=4
+    volumes:
+      - backup_temp:/tmp/postgres-backups
+    networks:
+      - postgres-backup-network-v2
+    depends_on:
+      postgres-backup-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "postgres-backup-worker"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Service
+  postgres-backup-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: postgres-backup-frontend-v2
+    ports:
+      - "3000:80"
+    networks:
+      - postgres-backup-network-v2
+    depends_on:
+      - postgres-backup-api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  postgres_backup_data:  # PostgreSQL data persistence
+  backup_temp:           # Shared temporary backup files
+
+networks:
+  postgres-backup-network-v2:
+    driver: bridge 

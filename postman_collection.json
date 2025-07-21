@@ -1,0 +1,338 @@
+{
+  "info": {
+    "name": "Evolution PostgreSQL Backup Service API",
+    "description": "Collection para testar a API do serviço de backup PostgreSQL",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "api-key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "api_key",
+      "value": "a4f3a241-7763-4f3b-9101-0e26c5029f17"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "auth": {
+          "type": "noauth"
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/health",
+          "host": ["{{base_url}}"],
+          "path": ["health"]
+        },
+        "description": "Verificar se o serviço está funcionando (não requer autenticação)"
+      }
+    },
+    {
+      "name": "PostgreSQL",
+      "item": [
+        {
+          "name": "Listar Instâncias PostgreSQL",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/postgres",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "postgres"]
+            },
+            "description": "Lista todas as instâncias PostgreSQL configuradas"
+          }
+        },
+        {
+          "name": "Adicionar Instância PostgreSQL (Array)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test PostgreSQL Array\",\n  \"host\": \"localhost\",\n  \"port\": 5432,\n  \"databases\": [\n    \"database1\",\n    \"database2\",\n    \"database3\"\n  ],\n  \"username\": \"postgres\",\n  \"password\": \"test123\",\n  \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/postgres",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "postgres"]
+            },
+            "description": "Adiciona nova instância PostgreSQL usando array de databases"
+          }
+        },
+        {
+          "name": "Adicionar Instância PostgreSQL (String)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test PostgreSQL String\",\n  \"host\": \"localhost\",\n  \"port\": 5432,\n  \"database\": \"database1,database2,database3\",\n  \"username\": \"postgres\",\n  \"password\": \"test123\",\n  \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/postgres",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "postgres"]
+            },
+            "description": "Adiciona nova instância PostgreSQL usando string com vírgulas"
+          }
+        },
+        {
+          "name": "Atualizar Instância PostgreSQL",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"PostgreSQL Atualizado\",\n  \"host\": \"novo-host.com\",\n  \"port\": 5432,\n  \"database\": \"novo_db1,novo_db2\",\n  \"username\": \"postgres\",\n  \"password\": \"nova_senha\",\n  \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/postgres/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "postgres", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "postgres-1",
+                  "description": "ID da instância PostgreSQL"
+                }
+              ]
+            },
+            "description": "Atualiza uma instância PostgreSQL existente"
+          }
+        },
+        {
+          "name": "Deletar Instância PostgreSQL",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/postgres/:id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "postgres", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "postgres-1",
+                  "description": "ID da instância PostgreSQL"
+                }
+              ]
+            },
+            "description": "Remove uma instância PostgreSQL"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Backups",
+      "item": [
+        {
+          "name": "Listar Backups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/backups",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "backups"]
+            },
+            "description": "Lista todos os backups realizados"
+          }
+        },
+        {
+          "name": "Criar Backup Manual (Banco Específico)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"postgresql_id\": \"postgres-1\",\n  \"backup_type\": \"manual\",\n  \"database_name\": \"evogo_auth\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/backups",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "backups"]
+            },
+            "description": "Cria backup manual de um banco específico"
+          }
+        },
+        {
+          "name": "Criar Backup Manual (Banco Padrão)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"postgresql_id\": \"postgres-1\",\n  \"backup_type\": \"manual\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/backups",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "backups"]
+            },
+            "description": "Cria backup manual do banco padrão da instância"
+          }
+        },
+        {
+          "name": "Ver Detalhes do Backup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/backups/:backup_id",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "backups", ":backup_id"],
+              "variable": [
+                {
+                  "key": "backup_id",
+                  "value": "backup-uuid-123",
+                  "description": "ID do backup"
+                }
+              ]
+            },
+            "description": "Obtém detalhes de um backup específico"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Restore",
+      "item": [
+        {
+          "name": "Restaurar Backup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"backup_id\": \"backup-uuid-123\",\n  \"postgresql_id\": \"postgres-1\",\n  \"database_name\": \"evogo_auth_restored\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/restore",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "restore"]
+            },
+            "description": "Restaura um backup para um banco de dados"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logs",
+      "item": [
+        {
+          "name": "Ver Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/logs?lines=100&component=JOB",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "logs"],
+              "query": [
+                {
+                  "key": "lines",
+                  "value": "100",
+                  "description": "Número de linhas"
+                },
+                {
+                  "key": "component",
+                  "value": "JOB",
+                  "description": "Filtro por componente"
+                },
+                {
+                  "key": "level",
+                  "value": "",
+                  "description": "Filtro por nível (INFO, WARN, ERROR, DEBUG)",
+                  "disabled": true
+                },
+                {
+                  "key": "date",
+                  "value": "",
+                  "description": "Data (YYYY-MM-DD)",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Obtém logs filtrados do sistema"
+          }
+        },
+        {
+          "name": "Listar Arquivos de Log",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/logs/files",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "logs", "files"]
+            },
+            "description": "Lista todos os arquivos de log disponíveis"
+          }
+        },
+        {
+          "name": "Stream de Logs (SSE)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/logs/stream",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "logs", "stream"]
+            },
+            "description": "Stream de logs em tempo real (Server-Sent Events)"
+          }
+        }
+      ]
+    }
+  ]
+} 

@@ -1,0 +1,38 @@
+{
+  "postgresql_instances": [
+    {
+      "id": "postgres-1",
+      "name": "Chatpolos Postgres 1",
+      "host": "manager.chatpolos.com.br",
+      "port": 5432,
+      "database": "evogo_auth,evolution_lb",
+      "username": "postgres",
+      "password": "sRrWnGHybfHQtG6u",
+      "enabled": true
+    },
+    {
+      "id": "postgres-2",
+      "name": "Chatpolos Postgres 2",
+      "host": "manager.chatpolos.com.br",
+      "port": 5433,
+      "database": "evogo_user",
+      "username": "postgres",
+      "password": "sRrWnGHybfHQtG6u",
+      "enabled": true
+    }
+  ],
+  "retention_policy": {
+    "hourly": 24,
+    "daily": 30,
+    "weekly": 8,
+    "monthly": 12
+  },
+  "s3_config": {
+    "endpoint": "",
+    "region": "",
+    "bucket": "",
+    "access_key_id": "",
+    "secret_access_key": "",
+    "use_ssl": true
+  }
+} 

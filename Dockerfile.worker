@@ -1,0 +1,58 @@
+FROM golang:1.24-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache git ca-certificates tzdata
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the Worker service (CGO disabled for pure Go binary)
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
+    -a -installsuffix cgo \
+    -ldflags="-w -s" \
+    -o postgres-backup-worker \
+    cmd/worker/main.go
+
+# Final stage
+FROM alpine:latest
+
+# Install runtime dependencies
+RUN apk --no-cache add \
+    postgresql-client \
+    ca-certificates \
+    tzdata \
+    && rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
+
+# Set working directory
+WORKDIR /app
+
+# Copy binary and necessary files
+COPY --from=builder /app/postgres-backup-worker ./
+COPY --from=builder /app/internal ./internal/
+
+# Create required directories
+RUN mkdir -p /tmp/postgres-backups /app/data /app/db && \
+    chown -R appuser:appgroup /app /tmp/postgres-backups
+
+# Switch to non-root user
+USER appuser
+
+# Health check - check if worker process is running
+HEALTHCHECK --interval=60s --timeout=10s --start-period=30s --retries=3 \
+    CMD pgrep -f postgres-backup-worker || exit 1
+
+# Command to run Worker service
+CMD ["./postgres-backup-worker", "--workers=4", "--dev"] 

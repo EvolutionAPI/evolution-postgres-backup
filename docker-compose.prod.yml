@@ -1,0 +1,117 @@
+version: '3.8'
+
+services:
+  # API Service - Production Overrides
+  postgres-backup-api:
+    environment:
+      - LOG_LEVEL=warn  # Menos verbose em produção
+      - DATA_DIR=/app/data
+      # Production SQLite configurations
+      - DATABASE_PATH=/app/db/evolution_backup.db
+      - SQLITE_WAL_MODE=true
+      - SQLITE_CACHE_SIZE=2000  # Cache maior para produção
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 1G
+          cpus: '1.0'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  # Worker Service - Production Overrides
+  postgres-backup-worker:
+    environment:
+      - LOG_LEVEL=warn  # Menos verbose em produção
+      - DATA_DIR=/app/data
+      - BACKUP_TEMP_DIR=/tmp/postgres-backups
+      # Production worker configurations
+      - WORKER_COUNT=6  # Mais workers em produção
+      - WORKER_TIMEOUT=3600  # 1 hora timeout para workers
+      - BACKUP_RETENTION_DAYS=30
+      # Production SQLite configurations
+      - DATABASE_PATH=/app/db/evolution_backup.db
+      - SQLITE_WAL_MODE=true
+      - SQLITE_CACHE_SIZE=2000
+      # S3 Storage (production credentials)
+      - S3_ENDPOINT=https://hel1.your-objectstorage.com
+      - S3_REGION=hel1
+      - S3_BUCKET=backup-chatpolos
+      - S3_ACCESS_KEY_ID=M4WID7GXREH2EC5J30V8
+      - S3_SECRET_ACCESS_KEY=pLTF4vVMSnon1AL6NI9iTU86G0fTaVd7QyG6xfax
+      - S3_USE_SSL=true
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 2G
+          cpus: '2.0'
+        reservations:
+          memory: 512M
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "10"
+
+  # Frontend Production Overrides
+  postgres-backup-frontend:
+    ports:
+      - "80:80"  # Porta 80 para produção
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
+      # Production API configuration
+      - REACT_APP_API_BASE_URL=http://postgres-backup-api:8080
+      - REACT_APP_API_KEY=a4f3a241-7763-4f3b-9101-0e26c5029f17
+    deploy:
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Production volume configurations with backup
+volumes:
+  postgres-backup-db:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/postgres-backup/db
+  postgres-backup-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/postgres-backup/data
+  postgres-backup-temp:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /opt/postgres-backup/temp 

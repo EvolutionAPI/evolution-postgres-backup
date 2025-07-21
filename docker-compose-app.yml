@@ -1,0 +1,94 @@
+version: '3.8'
+
+services:
+  # API Service
+  postgres-backup-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: postgres-backup-api-v2
+    environment:
+      - PORT=8080
+      - API_KEY=a4f3a241-7763-4f3b-9101-0e26c5029f17
+      - DB_TYPE=postgres
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=backup_service
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_SSLMODE=disable
+      - S3_ENDPOINT=https://hel1.your-objectstorage.com
+      - S3_REGION=hel1
+      - S3_BUCKET=backup-chatpolos
+      - S3_ACCESS_KEY_ID=M4WID7GXREH2EC5J30V8
+      - S3_SECRET_ACCESS_KEY=pLTF4vVMSnon1AL6NI9iTU86G0fTaVd7QyG6xfax
+      - S3_USE_SSL=true
+      - LOG_LEVEL=info
+      - BACKUP_TEMP_DIR=/tmp/postgres-backups
+    ports:
+      - "8080:8080"
+    networks:
+      - local-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Worker Service  
+  postgres-backup-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: postgres-backup-worker-v2
+    environment:
+      - API_KEY=a4f3a241-7763-4f3b-9101-0e26c5029f17
+      - DB_TYPE=postgres
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=backup_service
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=root
+      - POSTGRES_SSLMODE=disable
+      - S3_ENDPOINT=https://hel1.your-objectstorage.com
+      - S3_REGION=hel1
+      - S3_BUCKET=backup-chatpolos
+      - S3_ACCESS_KEY_ID=M4WID7GXREH2EC5J30V8
+      - S3_SECRET_ACCESS_KEY=pLTF4vVMSnon1AL6NI9iTU86G0fTaVd7QyG6xfax
+      - S3_USE_SSL=true
+      - LOG_LEVEL=info
+      - BACKUP_TEMP_DIR=/tmp/postgres-backups
+      - WORKER_COUNT=4
+    volumes:
+      - backup_temp:/tmp/postgres-backups
+    networks:
+      - local-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "postgres-backup-worker"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Frontend Service
+  postgres-backup-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: postgres-backup-frontend-v2
+    ports:
+      - "3000:80"
+    networks:
+      - local-net
+    depends_on:
+      - postgres-backup-api
+
+volumes:
+  backup_temp:
+
+networks:
+  local-net:
+    driver: bridge 
