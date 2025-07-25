@@ -1,0 +1,114 @@
+version: "3.8"
+
+services:
+  # API Service
+  postgres-backup-api:
+    image: ghcr.io/evolutionapi/evolution-postgres-backup-api:main
+    networks:
+      - network_public
+    environment:
+      # ========== BASIC CONFIGURATION ==========
+      PORT: 8080
+      API_KEY: "a4f3a241-7763-4f3b-9101-0e26c5029f17"
+      LOG_LEVEL: "info"
+      BACKUP_TEMP_DIR: "/tmp/postgres-backups"
+      # ========== DATABASE CONFIGURATION ==========
+      DB_TYPE: "postgres"
+      POSTGRES_HOST: "postgres-backup-db"
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: "backup_service"
+      POSTGRES_USER: "backup_admin"
+      POSTGRES_PASSWORD: "backup_password_2024"
+      # ========== S3 STORAGE CONFIGURATION ==========
+      S3_ENDPOINT: "https://hel1.your-objectstorage.com"
+      S3_REGION: "hel1"
+      S3_BUCKET: "backup-chatpolos"
+      S3_ACCESS_KEY_ID: "M4WID7GXREH2EC5J30V8"
+      S3_SECRET_ACCESS_KEY: "pLTF4vVMSnon1AL6NI9iTU86G0fTaVd7QyG6xfax"
+      S3_USE_SSL: "true"
+    volumes:
+      - postgres_backup_temp:/tmp/postgres-backups
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+          - node.hostname == api1-server
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.postgres_backup_api.rule=Host(`api.backup.chatpolos.com.br`)
+        - traefik.http.routers.postgres_backup_api.entrypoints=websecure
+        - traefik.http.routers.postgres_backup_api.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.postgres_backup_api.priority=1
+        - traefik.http.routers.postgres_backup_api.service=postgres_backup_api
+        - traefik.http.services.postgres_backup_api.loadbalancer.server.port=8080
+        - traefik.http.services.postgres_backup_api.loadbalancer.passHostHeader=true
+
+  # Worker Service  
+  postgres-backup-worker:
+    image: ghcr.io/evolutionapi/evolution-postgres-backup-worker:main
+    networks:
+      - network_public
+    environment:
+      # ========== BASIC CONFIGURATION ==========
+      API_KEY: "a4f3a241-7763-4f3b-9101-0e26c5029f17"
+      LOG_LEVEL: "info"
+      BACKUP_TEMP_DIR: "/tmp/postgres-backups"
+      WORKER_COUNT: 4
+      # ========== DATABASE CONFIGURATION ==========
+      DB_TYPE: "postgres"
+      POSTGRES_HOST: "postgres-backup-db"
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: "backup_service"
+      POSTGRES_USER: "backup_admin"
+      POSTGRES_PASSWORD: "backup_password_2024"
+      # ========== S3 STORAGE CONFIGURATION ==========
+      S3_ENDPOINT: "https://hel1.your-objectstorage.com"
+      S3_REGION: "hel1"
+      S3_BUCKET: "backup-chatpolos"
+      S3_ACCESS_KEY_ID: "M4WID7GXREH2EC5J30V8"
+      S3_SECRET_ACCESS_KEY: "pLTF4vVMSnon1AL6NI9iTU86G0fTaVd7QyG6xfax"
+      S3_USE_SSL: "true"
+    volumes:
+      - postgres_backup_temp:/tmp/postgres-backups
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+          - node.hostname == api1-server
+
+  # Frontend Service
+  postgres-backup-frontend:
+    image: ghcr.io/evolutionapi/evolution-postgres-backup-frontend:main
+    networks:
+      - network_public
+    environment:
+      # ========== FRONTEND CONFIGURATION ==========
+      REACT_APP_API_BASE_URL: "https://api.backup.chatpolos.com.br"
+      REACT_APP_API_KEY: "a4f3a241-7763-4f3b-9101-0e26c5029f17"
+    deploy:
+      replicas: 2
+      placement:
+        constraints:
+          - node.hostname == api1-server
+      labels:
+        - traefik.enable=true
+        - traefik.http.routers.postgres_backup_frontend.rule=Host(`backup.chatpolos.com.br`)
+        - traefik.http.routers.postgres_backup_frontend.entrypoints=websecure
+        - traefik.http.routers.postgres_backup_frontend.tls.certresolver=letsencryptresolver
+        - traefik.http.routers.postgres_backup_frontend.priority=1
+        - traefik.http.routers.postgres_backup_frontend.service=postgres_backup_frontend
+        - traefik.http.services.postgres_backup_frontend.loadbalancer.server.port=80
+        - traefik.http.services.postgres_backup_frontend.loadbalancer.passHostHeader=true
+
+volumes:
+  postgres_backup_data:
+    external: true
+    name: postgres_backup_data
+  postgres_backup_temp:
+    external: true
+    name: postgres_backup_temp
+
+networks:
+  network_public:
+    external: true
+    name: network_public 
