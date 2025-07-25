@@ -283,19 +283,28 @@ func (w *Worker) processBackupJob(job *Job) error {
 	// Set password via environment variable
 	cmd.Env = append(os.Environ(), fmt.Sprintf("PGPASSWORD=%s", pgInstance.Password))
 
+	// Log pg_dump version for debugging
+	if versionCmd := exec.Command("pg_dump", "--version"); versionCmd != nil {
+		if versionOutput, versionErr := versionCmd.Output(); versionErr == nil {
+			w.logJobProgress(job.ID, backup.ID, "pg_dump version: %s", string(versionOutput))
+		}
+	}
+
 	w.logJobProgress(job.ID, backup.ID, "Executing pg_dump: %s@%s:%d/%s", pgInstance.Username, pgInstance.Host, pgInstance.Port, databaseName)
 
-	// Execute backup
-	if err := cmd.Run(); err != nil {
+	// Execute backup and capture both stdout and stderr
+	output, err := cmd.CombinedOutput()
+	if err != nil {
 		backup.Status = models.BackupStatusFailed
-		backup.ErrorMessage = fmt.Sprintf("pg_dump failed: %v", err)
+		errorMsg := fmt.Sprintf("pg_dump failed: %v\nOutput: %s", err, string(output))
+		backup.ErrorMessage = errorMsg
 		endTime := time.Now()
 		backup.EndTime = &endTime
 
 		if err := backupRepo.Update(backup); err != nil {
 			return fmt.Errorf("failed to update backup record: %w", err)
 		}
-		w.logJobProgress(job.ID, backup.ID, "pg_dump failed: %v", err)
+		w.logJobProgress(job.ID, backup.ID, "pg_dump failed: %v\nOutput: %s", err, string(output))
 		return fmt.Errorf("pg_dump failed: %w", err)
 	}
 
