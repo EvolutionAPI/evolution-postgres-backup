@@ -27,7 +27,7 @@ FROM alpine:latest
 
 # Install runtime dependencies
 RUN apk --no-cache add \
-    postgresql-client \
+    postgresql16-client \
     ca-certificates \
     tzdata \
     && rm -rf /var/cache/apk/*

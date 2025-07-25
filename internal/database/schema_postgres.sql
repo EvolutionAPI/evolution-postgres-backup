@@ -73,7 +73,7 @@ CREATE TABLE IF NOT EXISTS jobs (
     database_name TEXT NOT NULL,
     backup_id TEXT,
     priority INTEGER NOT NULL DEFAULT 5,
-    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'running', 'completed', 'failed', 'cancelled')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'running', 'completed', 'failed', 'cancelled', 'retrying')),
     payload JSONB,
     retry_count INTEGER NOT NULL DEFAULT 0,
     max_retries INTEGER NOT NULL DEFAULT 3,

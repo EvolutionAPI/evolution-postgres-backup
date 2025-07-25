@@ -445,6 +445,7 @@ func (q *JobQueue) loadJobsFromDatabase() {
 				SELECT id, type, postgres_id, database_name, backup_id, priority, payload, retry_count, max_retries, created_at
 				FROM jobs 
 				WHERE status = 'pending' 
+				   OR status = 'retrying'
 				   OR (status = 'running' AND started_at < NOW() - INTERVAL '5 minutes')
 				ORDER BY priority DESC, created_at ASC
 				LIMIT 10
